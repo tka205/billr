@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billr — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root { --ink:#0f0e0c; --paper:#f5f0e8; --cream:#ede8dc; --gold:#c9a84c; --muted:#7a7060; --white:#fdfaf4; --rust:#b85c38; --green:#2d7a4f; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--paper); color:var(--ink); font-family:'Outfit',sans-serif; min-height:100vh; }
+  header { background:var(--ink); color:var(--white); padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; }
+  .logo { font-family:'DM Serif Display',serif; font-size:1.5rem; }
+  .logo span { color:var(--gold); font-style:italic; }
+  .admin-badge { background:var(--gold); color:var(--ink); font-size:0.65rem; font-family:'DM Mono',monospace; font-weight:600; padding:0.2rem 0.6rem; border-radius:20px; letter-spacing:0.1em; text-transform:uppercase; }
+  .logout-btn { background:none; border:1px solid #333; color:#aaa; border-radius:6px; padding:0.4rem 0.9rem; font-size:0.8rem; font-family:'Outfit',sans-serif; cursor:pointer; transition:all 0.2s; }
+  .logout-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+  .container { max-width: 960px; margin: 0 auto; padding: 2.5rem 2rem; }
+
+  .page-title { font-family:'DM Serif Display',serif; font-size:1.8rem; margin-bottom:0.3rem; }
+  .page-sub { font-size:0.85rem; color:var(--muted); margin-bottom:2rem; }
+
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-bottom:2.5rem; }
+  .stat-card { background:var(--white); border-radius:10px; padding:1.5rem; border:1px solid var(--cream); }
+  .stat-card .num { font-family:'DM Serif Display',serif; font-size:2rem; color:var(--ink); }
+  .stat-card .lbl { font-family:'DM Mono',monospace; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); margin-top:0.3rem; }
+
+  .card { background:var(--white); border-radius:10px; border:1px solid var(--cream); overflow:hidden; margin-bottom:2rem; }
+  .card-header { padding:1.2rem 1.5rem; border-bottom:1px solid var(--cream); display:flex; align-items:center; justify-content:space-between; }
+  .card-header h2 { font-family:'DM Serif Display',serif; font-size:1.1rem; }
+
+  .add-btn { background:var(--ink); color:var(--white); border:none; border-radius:6px; padding:0.5rem 1.1rem; font-size:0.82rem; font-family:'Outfit',sans-serif; font-weight:600; cursor:pointer; transition:all 0.2s; }
+  .add-btn:hover { background:#2a2820; }
+
+  table { width:100%; border-collapse:collapse; }
+  thead th { font-family:'DM Mono',monospace; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); text-align:left; padding:0.8rem 1.5rem; border-bottom:1px solid var(--cream); }
+  tbody td { padding:0.9rem 1.5rem; border-bottom:1px solid var(--cream); font-size:0.88rem; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover { background:var(--paper); }
+
+  .badge { display:inline-block; padding:0.2rem 0.7rem; border-radius:20px; font-size:0.7rem; font-family:'DM Mono',monospace; font-weight:600; letter-spacing:0.05em; }
+  .badge.active { background:#dcfce7; color:var(--green); }
+  .badge.inactive { background:#fee2e2; color:#b91c1c; }
+
+  .action-btn { background:none; border:1.5px solid var(--cream); border-radius:5px; padding:0.3rem 0.7rem; font-size:0.75rem; font-family:'Outfit',sans-serif; cursor:pointer; transition:all 0.2s; font-weight:500; }
+  .action-btn.suspend { color:var(--rust); border-color:var(--rust); }
+  .action-btn.suspend:hover { background:#fef2f2; }
+  .action-btn.activate { color:var(--green); border-color:var(--green); }
+  .action-btn.activate:hover { background:#f0fdf4; }
+
+  /* Modal */
+  .modal-bg { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:100; }
+  .modal-bg.open { display:flex; }
+  .modal { background:var(--white); border-radius:12px; padding:2rem; width:100%; max-width:420px; position:relative; }
+  .modal h3 { font-family:'DM Serif Display',serif; font-size:1.3rem; margin-bottom:1.5rem; }
+  .field-group { display:flex; flex-direction:column; gap:0.35rem; margin-bottom:1rem; }
+  label { font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.1em; color:var(--muted); font-family:'DM Mono',monospace; }
+  input { background:var(--paper); border:1.5px solid var(--cream); border-radius:6px; padding:0.65rem 0.85rem; font-family:'Outfit',sans-serif; font-size:0.9rem; color:var(--ink); width:100%; }
+  input:focus { outline:none; border-color:var(--gold); }
+  .modal-actions { display:flex; gap:0.8rem; margin-top:1.5rem; }
+  .modal-actions button { flex:1; padding:0.75rem; border-radius:7px; font-family:'Outfit',sans-serif; font-weight:600; font-size:0.9rem; cursor:pointer; border:none; transition:all 0.2s; }
+  .btn-primary { background:var(--ink); color:var(--white); }
+  .btn-primary:hover { background:#2a2820; }
+  .btn-secondary { background:var(--cream); color:var(--ink); }
+  .empty-row td { text-align:center; color:var(--muted); font-style:italic; padding:2rem !important; }
+  .error-note { background:#fef2f2; border:1px solid #fca5a5; color:#b91c1c; border-radius:6px; padding:0.6rem 0.9rem; font-size:0.82rem; margin-bottom:1rem; display:none; }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <div class="logo">Bill<span>r</span></div>
+    <div class="admin-badge">Admin</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:1rem">
+    <a href="/app.html" style="color:var(--muted);font-size:0.82rem;text-decoration:none">← Back to App</a>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="page-title">Client Management</div>
+  <div class="page-sub">Add clients, manage access, suspend non-paying accounts.</div>
+
+  <div class="stats">
+    <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total Clients</div></div>
+    <div class="stat-card"><div class="num" id="statActive">—</div><div class="lbl">Active</div></div>
+    <div class="stat-card"><div class="num" id="statSuspended">—</div><div class="lbl">Suspended</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>All Clients</h2>
+      <button class="add-btn" onclick="openModal()">+ Add Client</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Business</th>
+          <th>Email</th>
+          <th>Joined</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="clientTable">
+        <tr class="empty-row"><td colspan="5">Loading clients...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add Client Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h3>Add New Client</h3>
+    <div id="modalError" class="error-note"></div>
+    <div class="field-group"><label>Business Name</label><input id="newBiz" type="text" placeholder="Their business name"></div>
+    <div class="field-group"><label>Email</label><input id="newEmail" type="email" placeholder="client@email.com"></div>
+    <div class="field-group"><label>Temporary Password</label><input id="newPass" type="text" placeholder="They can change this later" value="Billr2024!"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="createBtn" onclick="createClient()">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://cgxzxsjknaluibaglrzy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneHp4c2prbmFsdWliYWdscnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkyOTgsImV4cCI6MjA4ODc0NTI5OH0.n6c4ryX9pBGe5DGPfy1UFJWylLFHXUHjJJuRiEXJDA0';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // IMPORTANT: Replace this with your own admin email
+  const ADMIN_EMAIL = 'dylangom12@gmail.com';
+
+  sb.auth.getSession().then(({ data }) => {
+    if (!data.session) return window.location.href = '/index.html';
+    if (data.session.user.email !== ADMIN_EMAIL) return window.location.href = '/app.html';
+    loadClients();
+  });
+
+  async function logout() { await sb.auth.signOut(); window.location.href = '/index.html'; }
+
+  async function loadClients() {
+    const { data, error } = await sb.from('users').select('*').order('created_at', { ascending: false });
+    if (error || !data) return;
+
+    const active = data.filter(u => u.is_active !== false).length;
+    const suspended = data.filter(u => u.is_active === false).length;
+    document.getElementById('statTotal').textContent = data.length;
+    document.getElementById('statActive').textContent = active;
+    document.getElementById('statSuspended').textContent = suspended;
+
+    const tbody = document.getElementById('clientTable');
+    if (data.length === 0) {
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No clients yet. Add your first one!</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.map(u => {
+      const isActive = u.is_active !== false;
+      const joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+      return `<tr>
+        <td><strong>${u.business_name || '—'}</strong></td>
+        <td>${u.email}</td>
+        <td>${joined}</td>
+        <td><span class="badge ${isActive?'active':'inactive'}">${isActive?'Active':'Suspended'}</span></td>
+        <td>
+          ${isActive
+            ? `<button class="action-btn suspend" onclick="toggleStatus('${u.email}', false)">Suspend</button>`
+            : `<button class="action-btn activate" onclick="toggleStatus('${u.email}', true)">Activate</button>`
+          }
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  async function toggleStatus(email, status) {
+    await sb.from('users').update({ is_active: status }).eq('email', email);
+    loadClients();
+  }
+
+  function openModal() { document.getElementById('modalBg').classList.add('open'); }
+  function closeModal() { document.getElementById('modalBg').classList.remove('open'); document.getElementById('modalError').style.display='none'; }
+
+  async function createClient() {
+    const biz = document.getElementById('newBiz').value.trim();
+    const email = document.getElementById('newEmail').value.trim();
+    const pass = document.getElementById('newPass').value.trim();
+    const errEl = document.getElementById('modalError');
+    errEl.style.display = 'none';
+
+    if (!biz || !email || !pass) { errEl.textContent = 'Please fill all fields.'; errEl.style.display='block'; return; }
+
+    document.getElementById('createBtn').textContent = 'Creating...';
+    document.getElementById('createBtn').disabled = true;
+
+    const { error } = await sb.auth.signUp({ email, password: pass });
+    if (error && !error.message.includes('already registered')) {
+      errEl.textContent = error.message; errEl.style.display='block';
+      document.getElementById('createBtn').textContent = 'Create Account';
+      document.getElementById('createBtn').disabled = false;
+      return;
+    }
+
+    await sb.from('users').upsert({ email, business_name: biz, is_active: true });
+    document.getElementById('createBtn').textContent = 'Create Account';
+    document.getElementById('createBtn').disabled = false;
+    closeModal();
+    document.getElementById('newBiz').value = '';
+    document.getElementById('newEmail').value = '';
+    loadClients();
+  }
+</script>
+</body>
+</html>

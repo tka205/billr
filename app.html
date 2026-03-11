@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billr — Generate Quote</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --gold: #c9a84c;
+    --gold-light: #e8d5a3;
+    --rust: #b85c38;
+    --muted: #7a7060;
+    --white: #fdfaf4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--paper); color: var(--ink); font-family: 'Outfit', sans-serif; min-height: 100vh; }
+
+  header {
+    background: var(--ink); color: var(--white);
+    padding: 1rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-family: 'DM Serif Display', serif; font-size: 1.5rem; }
+  .logo span { color: var(--gold); font-style: italic; }
+  .header-right { display: flex; align-items: center; gap: 1.5rem; }
+  .user-info { font-family: 'DM Mono', monospace; font-size: 0.72rem; color: var(--muted); }
+  .logout-btn {
+    background: none; border: 1px solid #333; color: #aaa;
+    border-radius: 6px; padding: 0.4rem 0.9rem;
+    font-size: 0.8rem; font-family: 'Outfit', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .logout-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .app { display: grid; grid-template-columns: 420px 1fr; min-height: calc(100vh - 56px); }
+
+  .panel {
+    background: var(--white); border-right: 1px solid var(--cream);
+    padding: 1.8rem; overflow-y: auto;
+    display: flex; flex-direction: column; gap: 1.2rem;
+  }
+  .panel-title {
+    font-family: 'DM Serif Display', serif; font-size: 1.1rem;
+    color: var(--ink); padding-bottom: 0.6rem; border-bottom: 2px solid var(--gold);
+  }
+  .field-group { display: flex; flex-direction: column; gap: 0.35rem; }
+  label {
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--muted); font-family: 'DM Mono', monospace;
+  }
+  input, textarea, select {
+    background: var(--paper); border: 1.5px solid var(--cream);
+    border-radius: 6px; padding: 0.6rem 0.8rem;
+    font-family: 'Outfit', sans-serif; font-size: 0.9rem;
+    color: var(--ink); transition: border-color 0.2s; width: 100%;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--gold); background: var(--white); }
+  textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; }
+
+  .line-items { display: flex; flex-direction: column; gap: 0.5rem; }
+  .line-item { display: grid; grid-template-columns: 1fr 60px 75px 26px; gap: 0.4rem; align-items: center; }
+  .line-item input { font-size: 0.82rem; padding: 0.45rem 0.55rem; }
+  .remove-btn {
+    background: none; border: none; color: var(--muted);
+    cursor: pointer; font-size: 1.1rem; padding: 0.2rem;
+    border-radius: 4px; transition: color 0.2s;
+  }
+  .remove-btn:hover { color: var(--rust); }
+  .line-item-header { display: grid; grid-template-columns: 1fr 60px 75px 26px; gap: 0.4rem; }
+  .line-item-header span {
+    font-family: 'DM Mono', monospace; font-size: 0.62rem;
+    text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted);
+  }
+  .add-line-btn {
+    background: none; border: 1.5px dashed var(--gold); color: var(--gold);
+    border-radius: 6px; padding: 0.45rem; font-size: 0.8rem;
+    font-family: 'Outfit', sans-serif; cursor: pointer; transition: all 0.2s; font-weight: 500;
+  }
+  .add-line-btn:hover { background: var(--gold-light); }
+
+  .gen-btn {
+    background: var(--ink); color: var(--white); border: none;
+    border-radius: 8px; padding: 0.9rem; font-size: 0.95rem;
+    font-family: 'Outfit', sans-serif; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; display: flex; align-items: center;
+    justify-content: center; gap: 0.5rem; margin-top: 0.3rem;
+  }
+  .gen-btn:hover { background: #2a2820; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+  .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .spinner {
+    width: 15px; height: 15px;
+    border: 2px solid rgba(255,255,255,0.3); border-top-color: white;
+    border-radius: 50%; animation: spin 0.7s linear infinite; display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .preview { background: var(--paper); padding: 2rem; overflow-y: auto; position: relative; }
+  .preview-placeholder {
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; height: 100%; gap: 1rem;
+    color: var(--muted); text-align: center; padding: 3rem;
+  }
+  .preview-placeholder .icon { font-size: 2.5rem; opacity: 0.3; }
+  .preview-placeholder p { font-size: 0.9rem; line-height: 1.6; max-width: 280px; }
+
+  .invoice {
+    background: white; max-width: 720px; margin: 0 auto;
+    padding: 3rem; box-shadow: 0 8px 48px rgba(0,0,0,0.1);
+    border-radius: 4px; animation: fadeUp 0.4s ease;
+    position: relative; overflow: hidden;
+  }
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .invoice::before {
+    content: ''; position: absolute; top:0; left:0; right:0; height:5px;
+    background: linear-gradient(90deg, var(--gold), var(--rust));
+  }
+  .invoice-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; }
+  .invoice-brand h1 { font-family: 'DM Serif Display', serif; font-size: 1.8rem; color: var(--ink); line-height: 1; }
+  .invoice-brand .biz-sub { font-size: 0.75rem; color: var(--muted); font-family: 'DM Mono', monospace; letter-spacing: 0.08em; margin-top: 0.3rem; text-transform: uppercase; }
+  .invoice-meta { text-align: right; font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--muted); line-height: 2; }
+  .invoice-meta .inv-number { font-size: 1rem; color: var(--gold); font-weight: 500; }
+  .invoice-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; background: var(--paper); border-radius: 8px; padding: 1.2rem; margin-bottom: 1.8rem; }
+  .party-block h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 0.4rem; }
+  .party-block p { font-size: 0.88rem; line-height: 1.7; color: var(--ink); }
+  .party-block strong { font-weight: 600; font-size: 0.95rem; }
+  .scope-box { border-left: 3px solid var(--gold); padding: 0.9rem 1.1rem; margin-bottom: 1.8rem; background: #fffef9; }
+  .scope-box h3 { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); font-family: 'DM Mono', monospace; margin-bottom: 0.4rem; }
+  .scope-box p { font-size: 0.9rem; line-height: 1.7; }
+  .items-table { width: 100%; border-collapse: collapse; margin-bottom: 1.2rem; font-size: 0.88rem; }
+  .items-table thead th { font-family: 'DM Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); text-align: left; padding: 0.45rem 0.5rem; border-bottom: 2px solid var(--cream); }
+  .items-table thead th:last-child { text-align: right; }
+  .items-table tbody td { padding: 0.65rem 0.5rem; border-bottom: 1px solid var(--cream); }
+  .items-table tbody td:last-child { text-align: right; font-family: 'DM Mono', monospace; }
+  .items-table tbody td.qty { color: var(--muted); font-family: 'DM Mono', monospace; font-size: 0.82rem; }
+  .totals { display: flex; flex-direction: column; align-items: flex-end; gap: 0.35rem; margin-bottom: 1.8rem; }
+  .total-row { display: flex; gap: 3rem; font-size: 0.85rem; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .total-row.grand { color: var(--ink); font-size: 1.05rem; font-weight: 600; padding-top: 0.5rem; border-top: 2px solid var(--ink); margin-top: 0.2rem; }
+  .total-row span:last-child { min-width: 90px; text-align: right; }
+  .notes-box { background: var(--paper); border-radius: 6px; padding: 1rem; font-size: 0.83rem; color: var(--muted); line-height: 1.7; margin-bottom: 1.5rem; }
+  .notes-box h4 { font-family: 'DM Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.4rem; color: var(--ink); }
+  .invoice-footer { text-align: center; font-family: 'DM Mono', monospace; font-size: 0.7rem; color: var(--muted); letter-spacing: 0.06em; padding-top: 1.2rem; border-top: 1px solid var(--cream); }
+  .print-bar { display: flex; justify-content: flex-end; gap: 0.8rem; max-width: 720px; margin: 0 auto 1rem; }
+  .print-btn, .copy-btn { background: white; border: 1.5px solid var(--cream); border-radius: 6px; padding: 0.45rem 0.9rem; font-size: 0.8rem; font-family: 'Outfit', sans-serif; cursor: pointer; color: var(--ink); font-weight: 500; transition: all 0.2s; }
+  .print-btn:hover, .copy-btn:hover { border-color: var(--gold); }
+  .error-msg { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; border-radius: 6px; padding: 0.7rem 0.9rem; font-size: 0.83rem; display: none; }
+
+  @media print {
+    header, .panel, .print-bar { display: none !important; }
+    .app { grid-template-columns: 1fr; }
+    .preview { padding: 0; background: white; }
+    .invoice { box-shadow: none; margin: 0; border-radius: 0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Bill<span>r</span></div>
+  <div class="header-right">
+    <div class="user-info" id="userInfo">—</div>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="app">
+  <div class="panel">
+    <div class="panel-title">Your Business</div>
+    <div class="field-group">
+      <label>Business Name</label>
+      <input id="bizName" type="text" placeholder="e.g. Kojo's Electric Works">
+    </div>
+    <div class="row-2">
+      <div class="field-group"><label>Email</label><input id="bizEmail" type="text" placeholder="you@email.com"></div>
+      <div class="field-group"><label>Phone</label><input id="bizPhone" type="text" placeholder="+1 555 000 0000"></div>
+    </div>
+
+    <div class="panel-title">Client Details</div>
+    <div class="field-group"><label>Client / Company Name</label><input id="clientName" type="text" placeholder="e.g. Mama Ngozi's Restaurant"></div>
+    <div class="field-group"><label>Client Email</label><input id="clientEmail" type="text" placeholder="client@email.com"></div>
+
+    <div class="panel-title">Job Details</div>
+    <div class="field-group">
+      <label>Describe the Work</label>
+      <textarea id="jobDesc" placeholder="e.g. Rewire the kitchen and install 4 new power outlets..."></textarea>
+    </div>
+    <div class="row-2">
+      <div class="field-group">
+        <label>Currency</label>
+        <select id="currency">
+          <option value="USD">USD ($)</option>
+          <option value="GBP">GBP (£)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="NGN">NGN (₦)</option>
+          <option value="GHS">GHS (₵)</option>
+          <option value="KES">KES (KSh)</option>
+          <option value="ZAR">ZAR (R)</option>
+          <option value="PHP">PHP (₱)</option>
+          <option value="BRL">BRL (R$)</option>
+        </select>
+      </div>
+      <div class="field-group"><label>VAT / Tax %</label><input id="taxRate" type="number" placeholder="0" value="0"></div>
+    </div>
+    <div class="field-group"><label>Payment Terms</label><input id="terms" type="text" placeholder="e.g. 50% upfront, balance on completion"></div>
+
+    <div class="panel-title">Line Items</div>
+    <div class="line-item-header">
+      <span>Description</span><span>Qty</span><span>Unit Price</span><span></span>
+    </div>
+    <div class="line-items" id="lineItems">
+      <div class="line-item">
+        <input type="text" placeholder="Labour / Material..." class="li-desc">
+        <input type="number" placeholder="1" class="li-qty" value="1" min="0">
+        <input type="number" placeholder="0.00" class="li-price" min="0" step="0.01">
+        <button class="remove-btn" onclick="removeLine(this)">×</button>
+      </div>
+    </div>
+    <button class="add-line-btn" onclick="addLine()">+ Add Line Item</button>
+
+    <div id="errorMsg" class="error-msg"></div>
+    <button class="gen-btn" id="genBtn" onclick="generateQuote()">
+      <span id="btnText">✦ Generate Professional Quote</span>
+      <span id="btnSpinner" class="spinner"></span>
+    </button>
+  </div>
+
+  <div class="preview" id="preview">
+    <div class="preview-placeholder">
+      <div class="icon">📋</div>
+      <p>Fill in your details and click <strong>Generate</strong> — your professional quote will appear here instantly.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://cgxzxsjknaluibaglrzy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneHp4c2prbmFsdWliYWdscnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkyOTgsImV4cCI6MjA4ODc0NTI5OH0.n6c4ryX9pBGe5DGPfy1UFJWylLFHXUHjJJuRiEXJDA0';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const CURRENCY_SYMBOLS = { USD:'$', GBP:'£', EUR:'€', NGN:'₦', GHS:'₵', KES:'KSh ', ZAR:'R', PHP:'₱', BRL:'R$' };
+
+  // Auth guard
+  let currentUser = null;
+  sb.auth.getSession().then(async ({ data }) => {
+    if (!data.session) return window.location.href = '/index.html';
+    currentUser = data.session.user;
+    document.getElementById('userInfo').textContent = currentUser.email;
+
+    // Check active status
+    const { data: profile } = await sb.from('users').select('is_active, business_name').eq('email', currentUser.email).single();
+    if (profile?.is_active === false) {
+      await sb.auth.signOut();
+      window.location.href = '/index.html';
+      return;
+    }
+    if (profile?.business_name) document.getElementById('bizName').value = profile.business_name;
+  });
+
+  async function logout() {
+    await sb.auth.signOut();
+    window.location.href = '/index.html';
+  }
+
+  function addLine() {
+    const container = document.getElementById('lineItems');
+    const div = document.createElement('div');
+    div.className = 'line-item';
+    div.innerHTML = `
+      <input type="text" placeholder="Labour / Material..." class="li-desc">
+      <input type="number" placeholder="1" class="li-qty" value="1" min="0">
+      <input type="number" placeholder="0.00" class="li-price" min="0" step="0.01">
+      <button class="remove-btn" onclick="removeLine(this)">×</button>`;
+    container.appendChild(div);
+  }
+
+  function removeLine(btn) {
+    if (document.querySelectorAll('.line-item').length > 1) btn.closest('.line-item').remove();
+  }
+
+  function getLineItems() {
+    const items = [];
+    document.querySelectorAll('.line-item').forEach(row => {
+      const desc = row.querySelector('.li-desc').value.trim();
+      const qty = parseFloat(row.querySelector('.li-qty').value) || 0;
+      const price = parseFloat(row.querySelector('.li-price').value) || 0;
+      if (desc || price) items.push({ desc, qty, price });
+    });
+    return items;
+  }
+
+  function fmtMoney(amount, sym) {
+    return sym + amount.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
+  function invoiceNum() { return 'INV-' + Date.now().toString().slice(-6); }
+  function todayStr() { return new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
+  function dueDateStr() { const d = new Date(); d.setDate(d.getDate()+14); return d.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }); }
+
+  function showError(msg) { const el = document.getElementById('errorMsg'); el.textContent = msg; el.style.display = 'block'; }
+  function clearError() { document.getElementById('errorMsg').style.display = 'none'; }
+
+  async function generateQuote() {
+    clearError();
+    const bizName    = document.getElementById('bizName').value.trim();
+    const bizEmail   = document.getElementById('bizEmail').value.trim();
+    const bizPhone   = document.getElementById('bizPhone').value.trim();
+    const clientName = document.getElementById('clientName').value.trim();
+    const clientEmail= document.getElementById('clientEmail').value.trim();
+    const jobDesc    = document.getElementById('jobDesc').value.trim();
+    const currency   = document.getElementById('currency').value;
+    const taxRate    = parseFloat(document.getElementById('taxRate').value) || 0;
+    const terms      = document.getElementById('terms').value.trim();
+    const lines      = getLineItems();
+    const sym        = CURRENCY_SYMBOLS[currency] || currency + ' ';
+
+    if (!bizName) return showError('Please enter your business name.');
+    if (!clientName) return showError('Please enter a client name.');
+    if (!jobDesc) return showError('Please describe the job/project.');
+
+    const btn = document.getElementById('genBtn');
+    document.getElementById('btnText').style.display = 'none';
+    document.getElementById('btnSpinner').style.display = 'block';
+    btn.disabled = true;
+
+    try {
+      const linesContext = lines.length > 0
+        ? `Line items:\n${lines.map(l => `- ${l.desc}: qty ${l.qty} @ ${sym}${l.price}`).join('\n')}`
+        : 'No line items — infer realistic ones from the job description.';
+
+      const prompt = `You are a professional quoting assistant. Generate a formal quote based on:
+
+Business: ${bizName}
+Email: ${bizEmail || 'N/A'} | Phone: ${bizPhone || 'N/A'}
+Client: ${clientName} | Email: ${clientEmail || 'N/A'}
+Currency: ${currency} (${sym}) | Tax: ${taxRate}%
+Terms: ${terms || '50% upfront, 50% on completion'}
+Job: ${jobDesc}
+${linesContext}
+
+Respond ONLY with raw JSON (no markdown):
+{
+  "scopeSummary": "2-3 sentence professional scope description",
+  "lineItems": [{ "desc": "string", "qty": 1, "unitPrice": 0.00 }],
+  "notes": "2-3 sentences on payment, guarantee, terms",
+  "thankYou": "one warm closing sentence"
+}
+Rules: use provided line items if given (clean descriptions); else create 3-6 realistic items. Prices realistic for ${currency}. Return ONLY the JSON.`;
+
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      const clean = data.text.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(clean);
+
+      const itemsToRender = parsed.lineItems || lines;
+      let subtotal = 0;
+      itemsToRender.forEach(i => { subtotal += (i.qty||1) * (i.unitPrice||i.price||0); });
+      const taxAmt = subtotal * (taxRate/100);
+      const total = subtotal + taxAmt;
+      const invNum = invoiceNum();
+
+      const itemRows = itemsToRender.map(item => {
+        const qty = item.qty||1, price = item.unitPrice||item.price||0;
+        return `<tr>
+          <td>${item.desc}</td>
+          <td class="qty">${qty}</td>
+          <td class="qty">${fmtMoney(price, sym)}</td>
+          <td>${fmtMoney(qty*price, sym)}</td>
+        </tr>`;
+      }).join('');
+
+      const taxRow = taxRate > 0 ? `
+        <div class="total-row"><span>Subtotal</span><span>${fmtMoney(subtotal,sym)}</span></div>
+        <div class="total-row"><span>Tax (${taxRate}%)</span><span>${fmtMoney(taxAmt,sym)}</span></div>` : '';
+
+      document.getElementById('preview').innerHTML = `
+        <div class="print-bar">
+          <button class="copy-btn" onclick="copyInvoice()">📋 Copy</button>
+          <button class="print-btn" onclick="window.print()">🖨 Print / PDF</button>
+        </div>
+        <div class="invoice" id="invoiceDoc">
+          <div class="invoice-header">
+            <div class="invoice-brand">
+              <h1>${bizName}</h1>
+              ${bizEmail ? `<div class="biz-sub">${bizEmail}${bizPhone?' · '+bizPhone:''}</div>` : ''}
+            </div>
+            <div class="invoice-meta">
+              <div class="inv-number">${invNum}</div>
+              <div>Date: ${todayStr()}</div>
+              <div>Due: ${dueDateStr()}</div>
+              <div>Status: <strong style="color:var(--gold)">QUOTE</strong></div>
+            </div>
+          </div>
+          <div class="invoice-parties">
+            <div class="party-block"><h3>From</h3><p><strong>${bizName}</strong><br>${bizEmail||''}${bizPhone?'<br>'+bizPhone:''}</p></div>
+            <div class="party-block"><h3>Prepared For</h3><p><strong>${clientName}</strong>${clientEmail?'<br>'+clientEmail:''}</p></div>
+          </div>
+          <div class="scope-box"><h3>Scope of Work</h3><p>${parsed.scopeSummary}</p></div>
+          <table class="items-table">
+            <thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th style="text-align:right">Total</th></tr></thead>
+            <tbody>${itemRows}</tbody>
+          </table>
+          <div class="totals">
+            ${taxRow}
+            <div class="total-row grand"><span>TOTAL (${currency})</span><span>${fmtMoney(total,sym)}</span></div>
+          </div>
+          <div class="notes-box"><h4>Terms & Notes</h4>${terms?`<p><strong>Payment Terms:</strong> ${terms}</p><br>`:''}
+          <p>${parsed.notes}</p></div>
+          <div class="invoice-footer">${parsed.thankYou}<br><br>Powered by Billr · ${invNum} · ${todayStr()}</div>
+        </div>`;
+
+    } catch(err) {
+      showError('Could not generate quote. Please try again. (' + err.message + ')');
+    } finally {
+      document.getElementById('btnText').style.display = 'block';
+      document.getElementById('btnSpinner').style.display = 'none';
+      btn.disabled = false;
+    }
+  }
+
+  function copyInvoice() {
+    const inv = document.getElementById('invoiceDoc');
+    if (!inv) return;
+    navigator.clipboard.writeText(inv.innerText).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✓ Copied!';
+      setTimeout(() => btn.textContent = '📋 Copy', 2000);
+    });
+  }
+</script>
+</body>
+</html>
