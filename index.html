@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Billr — Login</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --ink: #0f0e0c;
+    --paper: #f5f0e8;
+    --cream: #ede8dc;
+    --gold: #c9a84c;
+    --muted: #7a7060;
+    --white: #fdfaf4;
+    --rust: #b85c38;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Outfit', sans-serif;
+    position: relative;
+    overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at 30% 50%, rgba(201,168,76,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 50%, rgba(184,92,56,0.06) 0%, transparent 60%);
+  }
+  .card {
+    background: var(--white);
+    border-radius: 12px;
+    padding: 3rem;
+    width: 100%;
+    max-width: 420px;
+    position: relative;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--gold), var(--rust));
+  }
+  .logo {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    color: var(--ink);
+    text-align: center;
+    margin-bottom: 0.3rem;
+  }
+  .logo span { color: var(--gold); font-style: italic; }
+  .subtitle {
+    text-align: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 2.5rem;
+  }
+  .field-group { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.2rem; }
+  label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+  }
+  input {
+    background: var(--paper);
+    border: 1.5px solid var(--cream);
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.95rem;
+    color: var(--ink);
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus { outline: none; border-color: var(--gold); }
+  .btn {
+    width: 100%;
+    background: var(--ink);
+    color: var(--white);
+    border: none;
+    border-radius: 8px;
+    padding: 0.9rem;
+    font-size: 1rem;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .btn:hover { background: #2a2820; transform: translateY(-1px); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .error {
+    background: #fef2f2;
+    border: 1px solid #fca5a5;
+    color: #b91c1c;
+    border-radius: 6px;
+    padding: 0.7rem 1rem;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .toggle {
+    text-align: center;
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .toggle a {
+    color: var(--gold);
+    cursor: pointer;
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .toggle a:hover { text-decoration: underline; }
+  .mode-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 1.5rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Bill<span>r</span></div>
+  <div class="subtitle">Professional Quotes in Seconds</div>
+
+  <div id="errorMsg" class="error"></div>
+
+  <!-- LOGIN FORM -->
+  <div id="loginForm">
+    <div class="mode-title">Sign in to your account</div>
+    <div class="field-group">
+      <label>Email</label>
+      <input id="loginEmail" type="email" placeholder="you@example.com">
+    </div>
+    <div class="field-group">
+      <label>Password</label>
+      <input id="loginPassword" type="password" placeholder="••••••••">
+    </div>
+    <button class="btn" id="loginBtn" onclick="login()">
+      <span id="loginText">Sign In</span>
+      <span class="spinner" id="loginSpinner"></span>
+    </button>
+    <div class="toggle">Don't have an account? <a onclick="toggleMode('signup')">Sign up</a></div>
+  </div>
+
+  <!-- SIGNUP FORM -->
+  <div id="signupForm" style="display:none">
+    <div class="mode-title">Create your account</div>
+    <div class="field-group">
+      <label>Business Name</label>
+      <input id="signupBiz" type="text" placeholder="Your Business Name">
+    </div>
+    <div class="field-group">
+      <label>Email</label>
+      <input id="signupEmail" type="email" placeholder="you@example.com">
+    </div>
+    <div class="field-group">
+      <label>Password</label>
+      <input id="signupPassword" type="password" placeholder="Min 6 characters">
+    </div>
+    <button class="btn" id="signupBtn" onclick="signup()">
+      <span id="signupText">Create Account</span>
+      <span class="spinner" id="signupSpinner"></span>
+    </button>
+    <div class="toggle">Already have an account? <a onclick="toggleMode('login')">Sign in</a></div>
+  </div>
+</div>
+
+<script>
+  const SUPABASE_URL = 'https://cgxzxsjknaluibaglrzy.supabase.co';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneHp4c2prbmFsdWliYWdscnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkyOTgsImV4cCI6MjA4ODc0NTI5OH0.n6c4ryX9pBGe5DGPfy1UFJWylLFHXUHjJJuRiEXJDA0';
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  // Redirect if already logged in
+  sb.auth.getSession().then(({ data }) => {
+    if (data.session) window.location.href = '/app.html';
+  });
+
+  function toggleMode(mode) {
+    document.getElementById('loginForm').style.display = mode === 'login' ? 'block' : 'none';
+    document.getElementById('signupForm').style.display = mode === 'signup' ? 'block' : 'none';
+    clearError();
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+  function clearError() {
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+
+  function setLoading(prefix, loading) {
+    document.getElementById(prefix + 'Btn').disabled = loading;
+    document.getElementById(prefix + 'Text').style.display = loading ? 'none' : 'inline';
+    document.getElementById(prefix + 'Spinner').style.display = loading ? 'block' : 'none';
+  }
+
+  async function login() {
+    clearError();
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    if (!email || !password) return showError('Please fill in all fields.');
+
+    setLoading('login', true);
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    setLoading('login', false);
+
+    if (error) return showError(error.message);
+
+    // Check if user is active
+    const { data: profile } = await sb.from('users').select('is_active').eq('email', email).single();
+    if (profile && profile.is_active === false) {
+      await sb.auth.signOut();
+      return showError('Your account has been suspended. Please contact support.');
+    }
+
+    window.location.href = '/app.html';
+  }
+
+  async function signup() {
+    clearError();
+    const biz = document.getElementById('signupBiz').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    if (!biz || !email || !password) return showError('Please fill in all fields.');
+    if (password.length < 6) return showError('Password must be at least 6 characters.');
+
+    setLoading('signup', true);
+    const { data, error } = await sb.auth.signUp({ email, password });
+    if (error) { setLoading('signup', false); return showError(error.message); }
+
+    // Save profile
+    await sb.from('users').insert({ email, business_name: biz, is_active: true });
+    setLoading('signup', false);
+    showError('✅ Account created! Check your email to confirm, then sign in.');
+    toggleMode('login');
+  }
+
+  // Allow Enter key
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      const loginVisible = document.getElementById('loginForm').style.display !== 'none';
+      if (loginVisible) login(); else signup();
+    }
+  });
+</script>
+</body>
+</html>
