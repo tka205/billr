@@ -164,6 +164,7 @@
   <div class="logo">Bill<span>r</span></div>
   <div class="header-right">
     <div class="user-info" id="userInfo">—</div>
+    <a href="/reset-password.html" style="color:var(--muted);font-size:0.82rem;text-decoration:none;border:1px solid #333;padding:0.4rem 0.9rem;border-radius:6px;transition:all 0.2s" onmouseover="this.style.borderColor='#c9a84c';this.style.color='#c9a84c'" onmouseout="this.style.borderColor='#333';this.style.color='var(--muted)'">Change Password</a>
     <button class="logout-btn" onclick="logout()">Sign Out</button>
   </div>
 </header>
@@ -240,7 +241,9 @@
 <script>
   const SUPABASE_URL = 'https://cgxzxsjknaluibaglrzy.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneHp4c2prbmFsdWliYWdscnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkyOTgsImV4cCI6MjA4ODc0NTI5OH0.n6c4ryX9pBGe5DGPfy1UFJWylLFHXUHjJJuRiEXJDA0';
- const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
   const CURRENCY_SYMBOLS = { USD:'$', GBP:'£', EUR:'€', NGN:'₦', GHS:'₵', KES:'KSh ', ZAR:'R', PHP:'₱', BRL:'R$' };
 
   // Auth guard
