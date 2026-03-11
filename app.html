@@ -240,9 +240,7 @@
 <script>
   const SUPABASE_URL = 'https://cgxzxsjknaluibaglrzy.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneHp4c2prbmFsdWliYWdscnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkyOTgsImV4cCI6MjA4ODc0NTI5OH0.n6c4ryX9pBGe5DGPfy1UFJWylLFHXUHjJJuRiEXJDA0';
-  const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   const CURRENCY_SYMBOLS = { USD:'$', GBP:'£', EUR:'€', NGN:'₦', GHS:'₵', KES:'KSh ', ZAR:'R', PHP:'₱', BRL:'R$' };
 
   // Auth guard
