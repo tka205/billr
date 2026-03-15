@@ -18,7 +18,7 @@
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
-    background: var(--ink);
+    background: #0a0908;
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -31,8 +31,24 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at 30% 50%, rgba(201,168,76,0.08) 0%, transparent 60%),
-                radial-gradient(ellipse at 70% 50%, rgba(184,92,56,0.06) 0%, transparent 60%);
+    background:
+      radial-gradient(ellipse 80% 60% at 20% 40%, rgba(201,168,76,0.13) 0%, transparent 55%),
+      radial-gradient(ellipse 60% 50% at 80% 60%, rgba(184,92,56,0.10) 0%, transparent 50%),
+      radial-gradient(ellipse 40% 40% at 50% 100%, rgba(201,168,76,0.06) 0%, transparent 50%);
+  }
+  body::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      radial-gradient(circle, rgba(201,168,76,0.07) 1px, transparent 1px);
+    background-size: 32px 32px;
+    mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 70% 70% at 50% 50%, black 0%, transparent 100%);
+  }
+  @keyframes cardFloat {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
   }
   .card {
     background: var(--white);
@@ -41,7 +57,7 @@
     width: 100%;
     max-width: 420px;
     position: relative;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+    box-shadow: 0 32px 100px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
     overflow: hidden;
   }
   .card::before {
@@ -53,7 +69,7 @@
   }
   .logo {
     font-family: 'DM Serif Display', serif;
-    font-size: 2.2rem;
+    font-size: 2.5rem;
     color: var(--ink);
     text-align: center;
     margin-bottom: 0.3rem;
@@ -202,8 +218,7 @@
 <script>
   const SUPABASE_URL = 'https://cgxzxsjknaluibaglrzy.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNneHp4c2prbmFsdWliYWdscnp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNjkyOTgsImV4cCI6MjA4ODc0NTI5OH0.n6c4ryX9pBGe5DGPfy1UFJWylLFHXUHjJJuRiEXJDA0';
-  const { createClient } = supabase;
-  const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // Redirect if already logged in
   sb.auth.getSession().then(({ data }) => {
