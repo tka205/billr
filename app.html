@@ -53,8 +53,13 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   .preview{background:var(--paper);padding:2rem;overflow-y:auto;}
   .preview-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:1rem;color:var(--muted);text-align:center;padding:3rem;}
-  .preview-placeholder .icon{font-size:2.5rem;opacity:0.3;}
-  .preview-placeholder p{font-size:0.9rem;line-height:1.6;max-width:280px;}
+  .placeholder-inner{display:flex;flex-direction:column;align-items:center;gap:1.2rem;max-width:340px;}
+  .placeholder-icon{opacity:0.7;}
+  .placeholder-title{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--ink);}
+  .placeholder-sub{font-size:0.88rem;color:var(--muted);line-height:1.7;text-align:center;}
+  .placeholder-steps{display:flex;flex-direction:column;gap:0.6rem;width:100%;margin-top:0.5rem;}
+  .step{display:flex;align-items:center;gap:0.7rem;font-size:0.82rem;color:var(--muted);}
+  .step-num{background:var(--ink);color:var(--white);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0;}
   .invoice{background:white;max-width:720px;margin:0 auto;padding:3rem;box-shadow:0 8px 48px rgba(0,0,0,0.1);border-radius:4px;animation:fadeUp 0.4s ease;position:relative;overflow:hidden;}
   @keyframes fadeUp{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
   .invoice::before{content:'';position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--gold),var(--rust));}
@@ -214,8 +219,26 @@
   </div>
   <div class="preview" id="preview">
     <div class="preview-placeholder">
-      <div class="icon">📋</div>
-      <p>Fill in your details and click <strong>Generate</strong> — your professional quote will appear here instantly.</p>
+      <div class="placeholder-inner">
+        <div class="placeholder-icon">
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="6" width="32" height="36" rx="3" stroke="#c9a84c" stroke-width="1.5" stroke-dasharray="3 2"/>
+            <line x1="15" y1="16" x2="33" y2="16" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="15" y1="22" x2="33" y2="22" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="15" y1="28" x2="25" y2="28" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="37" cy="37" r="8" fill="#0f0e0c"/>
+            <line x1="37" y1="33" x2="37" y2="41" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="33" y1="37" x2="41" y2="37" stroke="#c9a84c" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="placeholder-title">Your quote will appear here</div>
+        <div class="placeholder-sub">Fill in the details on the left and click <strong>Generate</strong> — your professional quote will be ready in seconds.</div>
+        <div class="placeholder-steps">
+          <div class="step"><span class="step-num">1</span> Enter your business & client details</div>
+          <div class="step"><span class="step-num">2</span> Describe the job or add line items</div>
+          <div class="step"><span class="step-num">3</span> Hit Generate — print or copy instantly</div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
